@@ -1,39 +1,43 @@
 #include "pipex.h"
 
-void freeing_memory(int *fd, pid_t pid1, pid_t pid2)
+static char *get_path_from_env(char **envp)
 {
+    int i = 0;
+    
+    while (envp[i])
+    {
+        if (envp[i][0] == 'P' && envp[i][1] == 'A' && 
+            envp[i][2] == 'T' && envp[i][3] == 'H' && envp[i][4] == '=')
+            return (envp[i] + 5);
+        i++;
+    }
+    return (NULL);
+}
+
+static void freeing_memory(int *fd, pid_t pid1, pid_t pid2)
+{
+    int status;
+
 	close(fd[0]);
     close(fd[1]);
 	waitpid(pid1, NULL, 0);
-	waitpid(pid2, NULL, 0);
+	waitpid(pid2, &status, 0);
+
+    if (status >= 0)
+        exit((status >> 8) & 0xFF);
+    else
+        exit(1);
 }
 
-char *find_binary(char *command, char **paths)
-{
-    char	*full_path;
-	int		i;
-    char    *temp;
-
-	i = 1;
-	while(paths[i])
-	{
-		temp = ft_strjoin(paths[i], "/");
-        full_path = ft_strjoin(temp, command);
-        free(temp);
-		if(access(full_path, X_OK) == 0)
-			return full_path;
-		i++;
-	}
-	return NULL;
-}
-
-void execute_process(char** args, int *pipefd, int type)
+static void execute_process(char** args, int *pipefd, int type, char **envp)
 {
 	char	**env_path;
 	char	*bin_path;
-    int    i;
+    char    *env;
+    int         i;
 
-	env_path = ft_split(getenv("PATH"), ':');
+    env = get_path_from_env(envp);
+	env_path = ft_split(env, ':');
 	bin_path = find_binary(args[0], env_path);
 	if(type == 0)
 	{
@@ -53,62 +57,24 @@ void execute_process(char** args, int *pipefd, int type)
         free(env_path[i]);
         i++;
     }
-	execve(bin_path, args, env_path);
-}
-
-char **get_args(int type, char **argv)
-{
-	char **args;
-
-	if(type == 0)
-	{
-		args = ft_split(argv[2], ' ');
-	}
-	else
-	{
-		args = ft_split(argv[3], ' ');
-	}
-
-    return args;
-}
-
-void infile(char *file, int type)
-{
-    int fd;
-
-    if (type == 0)
+	if(execve(bin_path, args, envp) == -1)
     {
-        fd = open(file, O_RDONLY);
-        if (fd < 0)
-        {
-            perror("Error opening infile file");
-            exit(1);
-        }
-        dup2(fd, STDIN_FILENO);
+        write(2, "command not found\n", 18);
+        exit(127);
     }
-    else if (type == 1)
-    {
-        fd = open(file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-        if (fd < 0)
-        {
-            perror("Error opening output file");
-            exit(1);
-        }
-        dup2(fd, STDOUT_FILENO);
-    }
-    close(fd);
 }
 
-int main(int argc, char **argv)
+int main(int argc, char **argv, char **envp)
 {
 	int fd[2];
     pid_t 	pid1;
 	pid_t 	pid2;
     char    **args;
+    int file;
 
     if (argc != 5)
     {
-        printf("Uso: ./pipex infile cmd1 cmd2 outfile\n");
+        write(2, "Invalid arguments, please try again:\n./pipex infile cmd1 cmd2 outfile\n", 70);
         return 1;
     }
 	if(pipe(fd) == -1)
@@ -118,18 +84,32 @@ int main(int argc, char **argv)
 		return 1;
 	if(pid1 == 0)
     {
-        infile(argv[1], 0);
+        file = open(argv[1], O_RDONLY);
+        if (file < 0)
+        {
+            write(2, "Error opening input file\n", 25);
+            exit(1);
+        }
+        dup2(file, STDIN_FILENO);
+        dup2(fd[1], STDOUT_FILENO);
         args = get_args(0, argv);
-        execute_process(args, fd, 0);
+        execute_process(args, fd, 0, envp);
     }
 	pid2 = fork();
 	if(pid2 < 0)
 		return 1;
 	if(pid2 == 0)
     {
-        infile(argv[4], 1);
+        file = open(argv[4], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        if (file < 0)
+        {
+            write(2, "Error opening output file\n", 26);
+            exit(1);
+        }
+        dup2(fd[0], STDIN_FILENO);
+        dup2(file, STDOUT_FILENO);
         args = get_args(1, argv);
-        execute_process(args, fd, 1);
+        execute_process(args, fd, 1, envp);
     }
     freeing_memory(fd, pid1, pid2);
 	return 0;
