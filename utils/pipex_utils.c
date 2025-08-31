@@ -10,39 +10,34 @@ static size_t	ft_strlen(const char *s)
 	return (i);
 }
 
-char **get_args(int type, char **argv)
+char	**get_args(int type, char **argv)
 {
-	char **args;
+	char	**args;
 
-	if(type == 0)
-	{
+	if (type == 1)
 		args = ft_split(argv[2], ' ');
-	}
 	else
-	{
 		args = ft_split(argv[3], ' ');
-	}
-
-    return args;
+	return (args);
 }
 
-char *find_binary(char *command, char **paths)
+char	*find_binary(char *command, char **paths)
 {
-    char	*full_path;
+	char	*full_path;
+	char	*temp;
 	int		i;
-    char    *temp;
 
 	i = 0;
-	while(paths[i])
+	while (paths[i])
 	{
 		temp = ft_strjoin(paths[i], "/");
-        full_path = ft_strjoin(temp, command);
-        free(temp);
-		if(access(full_path, X_OK) == 0)
-			return full_path;
+		full_path = ft_strjoin(temp, command);
+		free(temp);
+		if (access(full_path, X_OK) == 0)
+			return (full_path);
 		i++;
 	}
-	return NULL;
+	return (NULL);
 }
 
 size_t	ft_strlcpy(char *dst, const char *src, size_t size)

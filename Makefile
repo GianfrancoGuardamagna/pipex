@@ -1,6 +1,6 @@
 NAME = pipex
 
-PIPEX_SRCS = pipex.c utils/pipex_utils.c utils/pipex_split.c
+PIPEX_SRCS = pipex.c utils/pipex_utils.c utils/pipex_split.c utils/pipex_aux.c
 PIPEX_OBJS = $(PIPEX_SRCS:.c=.o)
 
 CC = cc

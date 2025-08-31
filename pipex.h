@@ -9,11 +9,14 @@
 # include <sys/wait.h>   // wait, waitpid
 
 /*Utils*/
-char    **get_args(int type, char **argv);
-char    *find_binary(char *command, char **paths);
+char	**get_args(int type, char **argv);
+char	*find_binary(char *command, char **paths);
 size_t	ft_strlcpy(char *dst, const char *src, size_t size);
 char	*ft_strjoin(char const *s1, char const *s2);
 
 char	**ft_split(const char *s, char c);
 
+/*Aux*/
+int    failed_fd(char *args);
+void	freeing_memory(int *fd, pid_t pid1, pid_t pid2);
 #endif
