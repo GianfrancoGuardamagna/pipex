@@ -19,24 +19,26 @@ envp[i][2] == 'T' && envp[i][3] == 'H' && envp[i][4] == '=')
 	return (NULL);
 }
 
-static void	error_executing(int site_of_error, int *fd, char **env, char **cmd_params)
+static void	error_executing\
+(int site_of_error, int *fd, char **env, char **cmd_params)
 {
-	int	i = 0;
+	int	i;
 
+	i = 0;
 	if (fd[0] != -1)
 		close(fd[0]);
 	if (fd[1] != -1)
 		close(fd[1]);
 	freeing_env(env);
-	while(cmd_params[i])
+	while (cmd_params[i])
 	{
-		free(cmd_params[i]);
+		free (cmd_params[i]);
 		i++;
 	}
-	free(cmd_params);
-	if(site_of_error == 0)
+	free (cmd_params);
+	if (site_of_error == 0)
 		exit((perror("command not found"), 127));
-	else if(site_of_error == 1)
+	else if (site_of_error == 1)
 		exit((perror("bin not found"), 127));
 	else
 		exit((perror("execve"), 127));

@@ -18,7 +18,7 @@ char	*ft_strjoin(char const *s1, char const *s2);
 char	**ft_split(const char *s, char c);
 
 /*Aux*/
-void	failed_fd(void);
+int		failed_fd(void);
 void	freeing_memory(int *fd, pid_t pid1, pid_t pid2);
 void	freeing_env(char **env);
 

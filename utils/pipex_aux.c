@@ -1,9 +1,9 @@
 #include "../pipex.h"
 
-void	failed_fd(void)
+int	failed_fd(void)
 {
 	perror("Invalid Output File");
-	exit(127);
+	return (127);
 }
 
 void	freeing_env(char **env)
