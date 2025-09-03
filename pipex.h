@@ -7,6 +7,7 @@
 # include <fcntl.h>      // open
 # include <sys/types.h>  // pid_t
 # include <sys/wait.h>   // wait, waitpid
+# include <signal.h>     //SIGTERM
 
 /*Utils*/
 char	**get_args(int type, char **argv);
@@ -17,6 +18,8 @@ char	*ft_strjoin(char const *s1, char const *s2);
 char	**ft_split(const char *s, char c);
 
 /*Aux*/
-int    failed_fd(char *args);
+void	failed_fd(void);
 void	freeing_memory(int *fd, pid_t pid1, pid_t pid2);
+void	freeing_env(char **env);
+
 #endif

@@ -23,18 +23,19 @@ char	**get_args(int type, char **argv)
 
 char	*find_binary(char *command, char **paths)
 {
+	char	*tmp_path;
 	char	*full_path;
-	char	*temp;
 	int		i;
 
 	i = 0;
 	while (paths[i])
 	{
-		temp = ft_strjoin(paths[i], "/");
-		full_path = ft_strjoin(temp, command);
-		free(temp);
+		tmp_path = ft_strjoin(paths[i], "/");
+		full_path = ft_strjoin(tmp_path, command);
+		free(tmp_path);
 		if (access(full_path, X_OK) == 0)
 			return (full_path);
+		free(full_path);
 		i++;
 	}
 	return (NULL);

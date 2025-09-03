@@ -1,72 +1,96 @@
 #include "pipex.h"
 
-static char	*get_path_from_env(char **envp)
+static char	**get_paths_from_env(char **envp)
 {
-	int	i;
+	char	**paths;
+	int		i;
 
 	i = 0;
 	while (envp[i])
 	{
 		if (envp[i][0] == 'P' && envp[i][1] == 'A' && \
 envp[i][2] == 'T' && envp[i][3] == 'H' && envp[i][4] == '=')
-			return (envp[i] + 5);
+		{
+			paths = ft_split(envp[i] + 5, ':');
+			return (paths);
+		}
 		i++;
 	}
 	return (NULL);
 }
 
-static void execute_process(char* args, int *pipefd, int type, char **envp)
+static void	error_executing(int site_of_error, int *fd, char **env, char **cmd_params)
 {
-	char	**env_path;
-	char	*bin_path;
-    char    *env;
-    int         i;
+	int	i = 0;
 
-    env = get_path_from_env(envp);
-	env_path = ft_split(env, ':');
-	bin_path = find_binary(args, env_path);
-	if(type == 1)
-		dup2(pipefd[1], STDOUT_FILENO);
+	if (fd[0] != -1)
+		close(fd[0]);
+	if (fd[1] != -1)
+		close(fd[1]);
+	freeing_env(env);
+	while(cmd_params[i])
+	{
+		free(cmd_params[i]);
+		i++;
+	}
+	free(cmd_params);
+	if(site_of_error == 0)
+		exit((perror("command not found"), 127));
+	else if(site_of_error == 1)
+		exit((perror("bin not found"), 127));
 	else
-		dup2(pipefd[0], STDIN_FILENO);
-	close(pipefd[0]);
-	close(pipefd[1]);
-    i = 0;
-    while(env_path[i])
-    {
-        free(env_path[i]);
-        i++;
-    }
-	if(execve(bin_path, args, envp) == -1)
 		exit((perror("execve"), 127));
 }
 
-static int	process_loader(char **argv, char **envp, int *fd, int child)
+static void	execute_process(char *cmd, int *fd, int child, char **envp)
 {
-		char	*args;
-		int	file;
+	char	**env;
+	char	**cmd_params;
+	char	*bin_path;
 
-		args = NULL;
-		if(child == 1)
-		{
-			args = argv[2];
-			file = open(argv[1], O_RDONLY);
-			if (file < 0)
-				return(failed_fd(args));
-			dup2(file, STDIN_FILENO);
-			dup2(fd[1], STDOUT_FILENO);
-		}
-		else
-		{
-			args = argv[4];
-			file = open(argv[4], O_WRONLY | O_CREAT | O_TRUNC, 0644);
-			if (file < 0)
-				return(failed_fd(args));
-			dup2(fd[0], STDIN_FILENO);
-			dup2(file, STDOUT_FILENO);
-		}
-		execute_process(args, fd, child, envp);
-		return(0);
+	env = get_paths_from_env(envp);
+	cmd_params = ft_split(cmd, ' ');
+	if (!cmd_params || !cmd_params[0])
+		error_executing(0, fd, env, cmd_params);
+	bin_path = find_binary(cmd_params[0], env);
+	if (!bin_path)
+		error_executing(1, fd, env, cmd_params);
+	if (child == 1)
+		dup2(fd[1], STDOUT_FILENO);
+	else
+		dup2(fd[0], STDIN_FILENO);
+	close(fd[0]);
+	close(fd[1]);
+	freeing_env(env);
+	if (execve(bin_path, cmd_params, envp) == -1)
+		error_executing(2, fd, env, cmd_params);
+}
+
+static void	process_loader(char **argv, char **envp, int *fd, int child)
+{
+	char	*cmd;
+	int		file;
+
+	cmd = NULL;
+	if (child == 1)
+	{
+		cmd = argv[2];
+		file = open(argv[1], O_RDONLY);
+		if (file < 0)
+			exit(failed_fd());
+		dup2(file, STDIN_FILENO);
+		dup2(fd[1], STDOUT_FILENO);
+	}
+	else
+	{
+		cmd = argv[3];
+		file = open(argv[4], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		if (file < 0)
+			exit(failed_fd());
+		dup2(fd[0], STDIN_FILENO);
+		dup2(file, STDOUT_FILENO);
+	}
+	execute_process(cmd, fd, child, envp);
 }
 
 int	main(int argc, char **argv, char **envp)
@@ -81,13 +105,17 @@ int	main(int argc, char **argv, char **envp)
 	if (pipe(fd) == -1)
 		return (1);
 	pid1 = fork();
-	if (pid1 < 0)
+	if (pid1 == -1)
 		return (1);
 	if (pid1 == 0)
 		process_loader(argv, envp, fd, 1);
 	pid2 = fork();
-	if (pid2 < 0)
+	if (pid2 == -1)
+	{
+		kill(pid1, SIGTERM);
+		waitpid(pid1, NULL, 0);
 		return (1);
+	}
 	if (pid2 == 0)
 		process_loader(argv, envp, fd, 2);
 	freeing_memory(fd, pid1, pid2);

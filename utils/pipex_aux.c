@@ -1,10 +1,22 @@
 #include "../pipex.h"
 
-int failed_fd(char *args)
+void	failed_fd(void)
 {
-	free(args);
-	write(2, "Error opening input file\n", 25);
-	return(42);
+	perror("Invalid Output File");
+	exit(127);
+}
+
+void	freeing_env(char **env)
+{
+	int	i;
+
+	i = 0;
+	while (env[i])
+	{
+		free(env[i]);
+		i++;
+	}
+	free(env);
 }
 
 void	freeing_memory(int *fd, pid_t pid1, pid_t pid2)
